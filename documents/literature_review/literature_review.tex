@@ -1,0 +1,277 @@
+\documentclass{article}
+
+\usepackage[backend=biber, style=apa]{biblatex}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{colorlinks=False}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage{float}
+% \usepackage{color} maybe do this another time
+\usepackage{listings}
+\lstset{
+	language=[11]C++,
+	numbers=left,
+	stepnumber=1,
+	showstringspaces=false
+	showtabs=false,
+	keepspaces,
+	frame=tb,
+}
+
+\usepackage{graphicx}
+\graphicspath{{./images/}}
+
+\addbibresource{literature_review.bib}
+\DeclareLanguageMapping{american}{american-apa}
+
+\usepackage[toc,nopostdot, nonumberlist,automake,acronym]{glossaries}
+\makeglossaries
+
+
+
+\title{Implementing the Rust Borrow Checker in C++}
+\author{Fred Cook - 8463955}
+\date{November 2021}
+
+
+% glossary entries
+			\newglossaryentry{compilerg}{name={compiler},
+				plural={compilers}, description={A program which translates code (plain text) into assembly code. Examples include GCC and Clang.}}
+
+			\newglossaryentry{interpreterg}{name={interpreter},
+				plural={interpreters}, description={Translates the code to line by line, during execution (such as with Python and Javascript)}}
+
+
+			\newglossaryentry{assemblerg}{name={assembler},
+				plural={assemblers}, description={Translates assembly code into machine code.}}
+
+
+			%working
+			\newglossaryentry{gcg}{name={Garbage Collector},
+				description={A \gls{gcg} (\gls{gca}) is a program or part of a program which automatically frees unused (garbage) memory during runtime - increases overhead for the program.}}
+			\newacronym{gca}{GC}{\gls{gcg}}
+
+			\newglossaryentry{bstg}{name={Binary Search Tree},
+				description={A \gls{bstg} (\gls{bsta}) is a sorted, recursive data structure which has a root node, and separates all values less than the root node into one half, and all values greater than the root node into the other half.}}
+
+			\newacronym{bsta}{BST}{\gls{bstg}}
+\begin{document}
+\maketitle
+\newpage
+
+
+\tableofcontents
+\newpage
+
+
+
+\addcontentsline{toc}{section}{List of tables}
+\listoftables
+\addcontentsline{toc}{section}{List of figures}
+\listoffigures
+
+
+\printglossary[type=\acronymtype, title=List of acronyms]
+
+
+\newpage
+
+% FILL IN THIS WITH HEADER WITH LIBRARY FOR ABBREVIATIONS
+%\begin{table}[H]
+%	\centering
+%	\begin{tabular}{||c c c c||}
+%		\hline
+%		Col1 & Col2 & Col2  & Col3 \\ [0.5ex]
+%		\hline\hline
+%		1    & 6    & 87837 & 787  \\
+%		2    & 7    & 78    & 5415 \\
+%		3    & 545  & 778   & 7507 \\
+%		4    & 545  & 18744 & 7560 \\
+%		5    & 88   & 788   & 6344 \\ [1ex]
+%		\hline
+%	\end{tabular}
+%	\caption{This is the caption for the first table.}
+%	\label{table:1}
+%\end{table}
+
+\section{What is rust and what makes it differernt?}
+Mozilla - the developers of the Rust language say: "Rust is an open-source systems programming language that focuses on speed, memory safety and parallelism."  Rust also shares many other similarities with C and C++, these being that they are compiled languages, low level control, and (primarily relating to C++) the extensive use of "Zero cost abstractions" \parencite{mozilla-rust}
+
+Rust however aims to go further than it's "cousin" languages. The main thing that rust does to make it "better" than languages like C and C++ and set itself apart is relating to memory safety. In an interview Graydon Hoare, the man who started developing the Rust language says "Primarily, it's just much safer, less likely to crash." when asked "What makes it (Rust) better than C?" \parencite{rust-interview}
+\subsection{What is a "Zero Cost Abstraction?"}
+Bjarne Stroustrup (The creator of the C++ language) defines a set of ideals that make C++ what it is, these are: "A simple and direct mapping to hardware", and "Zero-overhead abstraction mechanisms" making it central to the core philosophy of C++ \parencite{stroustrup-presentation}. Stroustrup goes on to say "By “light-weight abstraction,” I mean abstractions that do not impose space or time overheads in excess of what would be imposed by careful hand coding of a particular example of the abstraction." \parencite{stroustrup-presentation}. An example of a zero cost abstraction is as follows:
+
+\begin{figure}[H]
+	\begin{lstlisting}
+#include <array>
+int main() {
+    std::array<int, 30> myArray;
+    myArray.at(25) = 50;
+    return myArray.at(25);
+}
+				\end{lstlisting}
+	\caption{"Modern" C++ std::array zero-cost abstraction}
+\label{figure:c++_zero_cost_abstraction}
+\end{figure}
+
+This code is trivially simple in that all it does is create a std::array object which is a collection of type T, T in this case being "int", the container containing 30 elements. the 26th element is then assigned the value of 50, the program returns the value in the 25th index and terminates.
+
+Similar behaviour can be achieved with traditional, "hand written" code as follows:
+\begin{figure}[H]
+	\begin{lstlisting}[language=c++]
+int main() {
+    int myArray[30];
+    myArray[25] = 50;
+    return myArray[25];
+}
+				\end{lstlisting}
+	\caption{Traditional C / C++ array}
+\label{figure:c++_traditional_array}
+\end{figure}
+The behaviour of these two programs is exactly the same and infact produce the exact same executable, we can see that the assembly output for both using x86-64 gcc version 11.2 is as follows
+
+\begin{figure}[H]
+	\begin{lstlisting}[language={[x86masm]Assembler}]
+main:
+        mov     eax, 50
+        ret
+				\end{lstlisting}
+	\caption{Assembly output for figures \ref{figure:c++_zero_cost_abstraction} and \ref{figure:c++_traditional_array}}
+	\label{figure:code:assembly_c++_array}
+\end{figure}
+
+From this we can see that because these two implementations provide the same assembly output, and therefore same runtime performance as one another that the std::array abstraction has "zero-overhead", despite providing the same functionality and in-fact it provides more functionality than the traditional C-like implementation, one of these being bounds checking.
+
+For example if we were to try the following and accessing an element out of the range of the container (undefined-behaviour) which renders the invalidates the program, although it may still run and may produce correct results \cite{cpp-reference-ub}:
+
+\begin{figure}[H]
+	\begin{lstlisting}
+#include <array>
+int main() {
+    std::array<int, 30> myArray;
+    myArray.at(25) = 50;
+    return myArray.at(100);
+}
+ 	\end{lstlisting}
+	\caption{Demonstration of bounds checking with std::array}
+\end{figure}
+
+we get a compilation error, this being ``terminate called after throwing an instance of ``std::out\textunderscore of\textunderscore range''''. This therefore demonstrates that the std::array object provides additional functionality to us, such as the ``std::array\textless T,N\textgreater::at(size\textunderscore type pos)'' method) which could be hand written, but has little or no advantages in terms of runtime performance to be made.
+The argument could be made that the bounds-checking operation could slow down the program, having to check if the index was within the array every time the at method is used, however, because these checks are made at compile time, there is 0 runtime performance difference again, demonstrated through the assembly output of the different examples being the same, making the argument moot
+
+\section{Rust and it's relation to C++}
+Rust is a relatively new language that aims to remove many of the barriers to entry in the	"systems-level" programming space \textcite{rust-book1}. Currently the systems-level market is primarily dominated by projects written in C (and by extension C++ to some degree), so much so that in his article \citetitle{c-language-blog} \citeauthor{c-language-blog} gives a scenario of waking up on an average day, using various appliances in the kitchen, watching the television etc, all of these systems are, according to the author most likely programmed in C \cite{c-language-blog}.
+
+Graydon Hoare also says that Rust's target audience is "frustrated C++ developers" \cite{rust-interview} and for this reason it's easy to see many of the similarities between the two languages and what Rust tries to do different to set it apart from one of the oldest languages still widely in use today, with C++ being the 4th most widely used language in the world at the time of writing according to the TIOBE index, which aims to track the popularity of different programming languages based on metrics such as number of search engine searches in a given time frame and proportion of lines of code written \cite{tiobe-index}
+
+\section{The Rust Borrow checker feature}
+The Rust Borrow Checker is a feature in rust that aims to prevent a series of memory safety mistakes such as ``use after free'' and ``dangling pointers'' without the need for a \gls{gca} \parencite{memory_safety_in_rust}. As this is done at compile time it has no runtime overhead.
+
+The rules set out by the borrow checker are:
+\begin{itemize}\label{rust:borrow_checker_rules}
+	\item{Any borrow must last for a scope no greater than that of the owner}
+	\item You may have either but not both of the following:
+	      \begin{itemize}
+		      \item One or more references (\& T) to a resource.
+		      \item Exactly one mutable reference (\& mut T)
+	      \end{itemize}
+\end{itemize}
+
+An example of the borrow checker is as follows:
+
+\begin{figure}[H]\label{fig:code:borrow_checker_1}
+	\begin{lstlisting}
+fn main() {
+    let mut x = 5;
+    let y = & mut x;
+
+    *y += 1;
+
+    println!("{}", x);
+}
+ 	\end{lstlisting}
+	\caption{Demonstration of Rust's borrow checker}
+\end{figure}
+This program results in an error:
+\begin{verbatim}
+error: cannot borrow `x` as immutable because it is also borrowed as mutable
+    println!("{}", x);
+\end{verbatim}
+This happens because we have a ``mutable reference'' to ``x'' on line 3, meaning x and y both point to the same place in memory and can both modify the value there. When we then try to pass a reference to x to the ``println!'' function meaning we have both, a mutable reference, and a non mutable reference in scope at the same time, violating the rules mtnioned in section \ref{rust:borrow_checker_rules}. In this case, the borrow checker prevents a possible race condition in the case that the modifications to y take place in the form of an asynchronous function, such as:
+\begin{figure}[H]
+	\begin{lstlisting}
+	use futures::executor::block_on;
+async fn increment(x:&mut u32) -> () {
+	*num = *num + 1;
+}
+
+fn main() {
+    let mut x = 5;
+    let y = &mut x;
+
+    let future = increment(y);
+
+    println!("{}", x);
+    block_on(future);
+}
+ 	\end{lstlisting}
+	\caption{Demonstration of Rust's borrow checker with asynchronous function}
+\end{figure}
+Because of the nature of static analysis being conservative, \ref{fig:code:borrow_checker_1} would have no problem executing normally and no race condition would occur, but Rust wants to ensure that if you wanted to refactor and make changes later that would have a race condition minimal structural changes would occur.
+
+This is a common theme in Rust, it forces your code to be correct in all instances, so that even if there would be no issue in any possible similar situation.
+\section{The need for safety in programming}
+The need for safety in programming has been ignored for a long time. This had lead to a large number of projects that have become part of huge systems we rely on, such as the NHS infrastructure, being bug prone \parencite{cost_of_bugs}. This means that there's economic incentives, aswell as safety reasons to create safe, reliable software.
+
+One example of error prone software causing huge economic damage was \emph{``the CEO of Provident Financial announced a software glitch that led to the company collecting only a little more than half of loan debts on time, the stock prices tumbled 74\% in a single day. The share price reduced from £17.42 to just £4.50. He resigned soon after.''} \parencite{cost_of_bugs}.
+\section{Programming language design and implementation}
+\section{Translators, compilers and compilation}
+Translators are programs which convert source code (plaintext) into executable code.
+There are 3 types of translators:
+\begin{itemize}
+	\item \Glspl{compilerg}
+	\item \Glspl{interpreterg}
+	\item \Glspl{assemblerg}
+\end{itemize}
+
+Each of the three have their advantages and disadvantages, but the main two are compilers and interpreters. Compilers generally create faster executing code due to the fact that all the translation is done ahead of time, however, this does it can take a long time to start running your code, interpreters remove this.
+
+The process of compilation is as follows:
+\subsection{Lexical analysis}
+Lexical analysis is the first stage of compilation and involves taking a stream of input, such as a source code file, and remove all unused pieces of text, such as white space, comments, etc, and output a series of ``Lexemes'', lexemes essentially representing the smallest pieces of text which represent something. For example, the code:
+
+\begin{figure}[H]
+	\begin{lstlisting}
+// beginning of source code
+var my_number = 42;
+ 	\end{lstlisting}
+	\caption{Input source code for an example Lexer}
+	\label{fig:code:pre-lexer}
+\end{figure}
+
+Would become a series of lexemes, of ``var'', ``my\textunderscore number'', ``='', ``42'', and ``;'' \parencite{crafting_interpreters}.
+
+Note that the commend on line 1 is completely removed.
+
+\subsection{Symbol table construction}
+The next stage in the process involves taking the output of the Lexer, and involves constructing a structure (often a \gls{bsta}) and creates a hierarchical structure which contains information about an indentifier (name) such as it's type, it's name, it's scope etc.
+\subsection{Syntax analysis}
+Syntax analysis (also known as parsing) we interpreter what the tokens (from the Lexer) mean and checking the validity of their structure. For example, in figure \ref{fig:code:pre-lexer}, if the semi-colon was removed, the lexer would be okay and continue as normal, but the syntax analyser would determine that the program is malformed, as in this language, a semi colon is needed at the end of every line and it would halt the compilation process.
+\subsection{Semantic analysis}
+Semantic analysis takes a valid series of lexemes from the syntax analyser and checks that they follow the rules of the language. This includes things such as no break statements outside of a loop. The semantic analyser performs other functions as well, such as type checking.
+
+\subsection{Code generation}
+Code generation could be considered as the final stage of the compilation process (optimisation as described in \ref{stages_of_compilation:optimisation} is optional). It involves generating the executable machine code. Code generators do not produce an executable for interpreted languages such as python, but do for fully compiled languages such as C.
+\subsection{Optimisation}\label{stages_of_compilation:optimisation}
+Optimisation is an optional stage in the compilation process, and involves the code optimiser indentifying parts of the program which could be replaced with other, optimised code. An example of this can be seen in figures \ref{figure:c++_zero_cost_abstraction}, \ref{figure:c++_traditional_array}, and \ref{figure:code:assembly_c} in which the compiler notices that just about all of the code is actually unused and doesn't produce a side effect (something like a write to a file, or anything with persistence) and so it removes it.
+\newpage
+
+\addcontentsline{toc}{section}{Bibliography}
+\printbibliography[heading=none]
+
+\printglossary[type=main]
+
+Word count: 1595
+
+\end{document}

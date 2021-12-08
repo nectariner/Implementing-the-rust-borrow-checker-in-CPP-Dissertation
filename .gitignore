@@ -1,0 +1,5 @@
+documents/*/*
+
+!documents/**/*.bib
+!documents/**/*.tex
+!documents/**/*.pdf

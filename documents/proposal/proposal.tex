@@ -1,0 +1,82 @@
+\documentclass{article}
+
+\usepackage[backend=biber, style=apa]{biblatex}
+\usepackage{float}
+\usepackage{listings}
+\lstset{ % General setup for the package
+    basicstyle=\small\sffamily,
+    numbers=left,
+    numberstyle=\tiny,
+    frame=tb,
+    tabsize=2,
+    columns=fixed,
+    showstringspaces=false,
+    showtabs=false,
+    keepspaces,
+}
+
+\usepackage[hidelinks]{hyperref}
+\hypersetup{colorlinks=False}
+
+\usepackage{graphicx}
+\graphicspath{{./images/}}
+
+\addbibresource{proposal.bib}
+\DeclareLanguageMapping{american}{american-apa}
+
+\title{6000CEM Individual Project Preparation - Proposal}
+\author{Fred Cook - 8463955}
+\date{November 2021}
+
+\begin{document}
+\maketitle
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Project title and research question}
+The project of my title is \emph{``Implementing the Rust Borrow Checker in C++''}
+
+
+The research question for my project is: \emph{``Is it possible to recreate the behaviour driven by the ``Rust borrow checker'' in C++ as a proof of concept?''}
+
+\section{Project topic}
+The areas of computing this project is associated with are:
+\begin{itemize}
+	\item{(C++) compiler implementation - The primary two compilers for C++ being GCC and Clang, these are FOSS (Free and Open Source) pieces of software which I am free to build upon.}
+	\item{C++ and Rust language design - Examining why these two languages are designed in the way they do, why they offer some features and don't others, and the philosophies that are behind the development of these languages and how they differ from one another.}
+	\item{Introducing modern ideas to a programming language - Although C++ has continued to be developed and has many modern features behind it now such as co-routines, languages that have been designed more recently don't have the issue of being forced (or heavily pushed) towards keeping older bad decisions as part of the language. For example, ABI (Application Binary Interface) breaking changes.}
+	\item{Improving memory safety in C++ - C++ has a reputation for being a relatively error prone programming language \parencite{error_prone_languages}, however, because it is such a widely used language and an industry standard it is easier to create tools to improve C++ code than it is to create a new language, teach all the developers around the world the new language and all it's features, philosophies, quirks, and then rewrite all the software in said new language.}
+\end{itemize}
+The main idea behind my project is porting over a feature from one programming language to another, in this case the Rust Borrow Checker to C++. This will involve adding additional source code to existing C++ compilers to add the functionality required.
+
+\section{Expected outputs}
+The output of my project will be additional open source source code to the Clang C++ compiler. This will allow for a demonstration of the changed behaviour due to my implementation. It will also mean that interested parties can download the code and add it to their projects, or inspect / add to it etc.
+
+The demonstration could include a presentation which shows an overview and brief comparison of the two codebases which will be created, an explanation of the borrow checker and the benefits of it, and showing how the C++ compiler (with my additional source code) can catch memory errors at compile time.
+
+\section{Motivation for the project: client or audience}
+This project is beneficial to members of the C++ programming community and by extension, the programming community as a whole. The aim is to prove that it's possible to bring together some the best of the features of the C++ and Rust programming language features. The rationale behind this is that C++ has 40 years worth of libraries, community development, educational material etc behind it, as opposed to Rust which has little in comparison. C++ also has the advantage of being an industry leader / standard, holding the 7th spot on the TIOBE index, compared to Rust which holds the 27th spot \parencite{tiobe_index}. It's therefore possible to make the case that this benefits companies hiring C++ and rust developers as it can improve to codebase of any given project by improving memory safety, for example, memory safety is the cause of over 65\% of \emph{``serious security''} bugs in Chromium, the browser engine behind Google Chrome, Microsoft Edge and many others \parencite{chromium_bugs}.
+
+I can determine whether my solution is successful by demonstrating a working proof of concept of the rust borrow checker in C++, this will be formally defined within the tests that will be developed mentioned above, formally classifying the behaviour. This is mentioned more in section \ref{primary_research_plan}.
+
+
+\section{Primary research plan}\label{primary_research_plan}
+My primary research plan is to create a small code base in both C++ and Rust which highlights the difference created by the borrow checker. I can then create my implementation of the borrow checker in C++, and build a test suite for both codebases and examine the assembly outputs of each codebase to compare the differences between them as well as comparing the behaviours of the different programs.
+
+Steps to take to reach my end goal are as follows:
+\begin{enumerate}
+	\item{Create a small codebase in C++, and illustrate where the potential memory safety mistakes are which could be resolved by the borrow checker}
+	\item{Create the equivalent code in Rust (note: for the two codebases a series of tests will be written to ensure identical behaviour aswell as assembly output analysis)}
+	\item{Create code to add to the C++ compiler, which will warn the user about previously mentioned memory safety errors and enforce borrow checker-like fixes}
+	\item{Demonstrate working code after fixes}
+\end{enumerate}
+
+\section{Bibliography}
+\printbibliography[heading=none]
+
+Word count: 773
+
+
+\end{document}
