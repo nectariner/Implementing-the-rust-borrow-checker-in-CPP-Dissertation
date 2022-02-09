@@ -96,9 +96,11 @@
 %\end{table}
 
 \section{What is rust and what makes it differernt?}
-Mozilla - the developers of the Rust language say: "Rust is an open-source systems programming language that focuses on speed, memory safety and parallelism."  Rust also shares many other similarities with C and C++, these being that they are compiled languages, low level control, and (primarily relating to C++) the extensive use of "Zero cost abstractions" \parencite{mozilla-rust}
+Mozilla - the developers of the Rust language say: "Rust is an open-source systems programming language that focuses on speed, memory safety and parallelism."  Rust also shares many other similarities with C and C++, these being that they are compiled languages, offer low level control, and (primarily relating to C++) the extensive use of "Zero cost abstractions" \parencite{mozilla-rust}.
 
-Rust however aims to go further than it's "cousin" languages. The main thing that rust does to make it "better" than languages like C and C++ and set itself apart is relating to memory safety. In an interview Graydon Hoare, the man who started developing the Rust language says "Primarily, it's just much safer, less likely to crash." when asked "What makes it (Rust) better than C?" \parencite{rust-interview}
+Rust however aims to go further than it's "cousin" languages. The main thing that rust does to make it "better" than languages like C and C++ and set itself apart relates to memory safety. In an interview Graydon Hoare, the man who started developing the Rust language says "Primarily, it's just much safer, less likely to crash." when asked "What makes it (Rust) better than C?" \parencite{rust-interview}.
+
+Rust offers features not in other languages which allow it to achieve memory safety through guarantees, one of the main methods Rust uses to achieve this is the ``Borrow Checker'' (See section \ref{section:rust_borrow_checker}).
 \subsection{What is a "Zero Cost Abstraction?"}
 Bjarne Stroustrup (The creator of the C++ language) defines a set of ideals that make C++ what it is, these are: "A simple and direct mapping to hardware", and "Zero-overhead abstraction mechanisms" making it central to the core philosophy of C++ \parencite{stroustrup-presentation}. Stroustrup goes on to say "By “light-weight abstraction,” I mean abstractions that do not impose space or time overheads in excess of what would be imposed by careful hand coding of a particular example of the abstraction." \parencite{stroustrup-presentation}. An example of a zero cost abstraction is as follows:
 
@@ -165,17 +167,18 @@ Rust is a relatively new language that aims to remove many of the barriers to en
 
 Graydon Hoare also says that Rust's target audience is "frustrated C++ developers" \cite{rust-interview} and for this reason it's easy to see many of the similarities between the two languages and what Rust tries to do different to set it apart from one of the oldest languages still widely in use today, with C++ being the 4th most widely used language in the world at the time of writing according to the TIOBE index, which aims to track the popularity of different programming languages based on metrics such as number of search engine searches in a given time frame and proportion of lines of code written \cite{tiobe-index}
 
-\section{The Rust Borrow checker feature}
+\section{The Rust Borrow Checker} \label{section:rust_borrow_checker}
 The Rust Borrow Checker is a feature in rust that aims to prevent a series of memory safety mistakes such as ``use after free'' and ``dangling pointers'' without the need for a \gls{gca} \parencite{memory_safety_in_rust}. As this is done at compile time it has no runtime overhead.
 
 The rules set out by the borrow checker are:
 \begin{itemize}\label{rust:borrow_checker_rules}
 	\item{Any borrow must last for a scope no greater than that of the owner}
-	\item You may have either but not both of the following:
+	\item \emph{You may have either but not both of the following:}
 	      \begin{itemize}
-		      \item One or more references (\& T) to a resource.
-		      \item Exactly one mutable reference (\& mut T)
+              \item{\emph{One or more references (\& T) to a resource.} (a T is a type, such as int, character, vector, etc).}
+		      \item \emph{Exactly one mutable reference (\& mut T)}
 	      \end{itemize}
+          \parencite{rust_book}
 \end{itemize}
 
 An example of the borrow checker is as follows:
@@ -226,6 +229,10 @@ The need for safety in programming has been ignored for a long time. This had le
 
 One example of error prone software causing huge economic damage was \emph{``the CEO of Provident Financial announced a software glitch that led to the company collecting only a little more than half of loan debts on time, the stock prices tumbled 74\% in a single day. The share price reduced from £17.42 to just £4.50. He resigned soon after.''} \parencite{cost_of_bugs}.
 \section{Programming language design and implementation}
+\subsection{The programming language typing spectrum}
+Programming languages have three criteria (among others) which strongly define it's behaviour. These three features can be plotted on a three-dimensional graph such as in figure the ``Lambda Cube'' (see figure \ref{fig:programming_language_spectrum}).
+\subsubsection{Where are C++ and Rust on this spectrum?}
+
 \section{Translators, compilers and compilation}
 Translators are programs which convert source code (plaintext) into executable code.
 There are 3 types of translators:
@@ -264,8 +271,14 @@ Semantic analysis takes a valid series of lexemes from the syntax analyser and c
 \subsection{Code generation}
 Code generation could be considered as the final stage of the compilation process (optimisation as described in \ref{stages_of_compilation:optimisation} is optional). It involves generating the executable machine code. Code generators do not produce an executable for interpreted languages such as python, but do for fully compiled languages such as C.
 \subsection{Optimisation}\label{stages_of_compilation:optimisation}
-Optimisation is an optional stage in the compilation process, and involves the code optimiser indentifying parts of the program which could be replaced with other, optimised code. An example of this can be seen in figures \ref{figure:c++_zero_cost_abstraction}, \ref{figure:c++_traditional_array}, and \ref{figure:code:assembly_c} in which the compiler notices that just about all of the code is actually unused and doesn't produce a side effect (something like a write to a file, or anything with persistence) and so it removes it.
+Optimisation is an optional stage in the compilation process, and involves the code optimiser indentifying parts of the program which could be replaced with other, optimised code. An example of this can be seen in figures \ref{figure:c++_zero_cost_abstraction}, \ref{figure:c++_traditional_array}, and \ref{figure:code:assembly_c++_array} in which the compiler notices that just about all of the code is actually unused and doesn't produce a side effect (something like a write to a file, or anything with persistence) and so it removes it.
 \newpage
+
+\section{The C++ Ecosystem}
+\subsection{Compilers}
+\subsection{Tooling}
+\subsection{Language Development}
+
 
 \addcontentsline{toc}{section}{Bibliography}
 \printbibliography[heading=none]
