@@ -156,6 +156,8 @@ int main()
         auto z = s.get_const_ref();
     }
 
+    auto x = s.get_mut_ref();
+    auto l = s.get_mut_ref();
     s.print_state();
     return 0;
 }
