@@ -1,14 +1,33 @@
+/**
+ * @file
+ * @author Fred Cook <fred.cook.work@gmail.com>
+ * @version 1.0
+ * @section LICENSE
+ *
+This file is part of "Rust Borrow Checker in C++".
+
+"Rust Borrow Checker in C++" is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
+
+"Rust Borrow Checker in C++" is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <cassert>
 #include <iostream>
 
+/// Enum class to represent whether the referent has mutable references, immutable references, or neither (or an invalid state)
 enum class State
 {
-    unset,
+    unset, /// Default state, no references to referent
     mut_ref,
     const_ref,
     invalid,
 };
 
+/**
+ *  @brief Struct which refers to arbitrary data and counts references of different types (mutable and immutable)
+ **/
 struct S
 {
 private:
@@ -38,6 +57,8 @@ private:
 
 public:
     // S() : data{}, const_ref_count{new int(0)}, mut_ref_count{new int(0)}, state{unset} {}
+    /// only constructor allowed
+    /// @param _data describes the data that will be referred to
     S(int _data) : data{}
     {
         state = new State(State::unset);
