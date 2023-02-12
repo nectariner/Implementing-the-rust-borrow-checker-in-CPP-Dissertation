@@ -2,21 +2,16 @@
  * @file
  * @author Fred Cook <fred.cook.work@gmail.com>
  * @version 1.0
- * @section LICENSE
  *
-This file is part of "Rust Borrow Checker in C++".
-
-"Rust Borrow Checker in C++" is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
-
-"Rust Borrow Checker in C++" is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>.
- */
+ * */
 
 #include <cassert>
-#include <iostream>
+#include <cstdlib>
+#include <exception>
+#include <iostream> //can be removed later when debugging done
 
-/// Enum class to represent whether the referent has mutable references, immutable references, or neither (or an invalid state)
+/// Enum class to represent whether the referent has mutable references, immutable references, or neither (or an invalid
+/// state)
 enum class State
 {
     unset, /// Default state, no references to referent
@@ -26,80 +21,103 @@ enum class State
 };
 
 /**
- *  @brief Struct which refers to arbitrary data and counts references of different types (mutable and immutable)
+ *  Class which refers to arbitrary data and counts references of different types (mutable and immutable)
  **/
-struct S
+template <typename T> class borrow_checked
 {
-private:
-    int *data;
+  private:
+    T *data;
     int *const_ref_count;
     int *mut_ref_count;
     State *state;
 
-    std::size_t increment_mut_ref_count()
+    int increment_mut_ref_count()
     {
         assert(*const_ref_count == 0);
         assert(*mut_ref_count == 0);
+        /*
+        if (*const_ref_count != 0)
+            throw;
+        if (*mut_ref_count != 0)
+            throw;
+        */
+
         ++*mut_ref_count;
         *state = State::mut_ref;
         return 1;
     }
 
-    std::size_t increment_const_ref_count()
+    const int increment_const_ref_count()
     {
-        assert(*mut_ref_count == 0);
+        assert((*mut_ref_count) == 0 && "cannot create const reference when mutable reference exists");
+        /*
+        if (*mut_ref_count != 0)
+            throw;
+            */
         ++*const_ref_count;
         *state = State::const_ref;
         return *const_ref_count;
     }
 
-    S() {}
+    borrow_checked()
+    {
+    }
 
-public:
-    // S() : data{}, const_ref_count{new int(0)}, mut_ref_count{new int(0)}, state{unset} {}
+  public:
+    // borrow_checked() : data{}, const_ref_count{new int(0)}, mut_ref_count{new int(0)}, state{unset} {}
     /// only constructor allowed
     /// @param _data describes the data that will be referred to
-    S(int _data) : data{}
+    borrow_checked(T _data) : data{}
     {
         state = new State(State::unset);
-        data = new int(_data);
+        data = new T(_data);
         mut_ref_count = new int(0);
         const_ref_count = new int(0);
     }
 
-    S get_mut_ref()
+    borrow_checked get_mut_ref()
     {
         increment_mut_ref_count();
-        S new_s;
-        new_s.data = data;
-        new_s.const_ref_count = const_ref_count;
-        new_s.mut_ref_count = mut_ref_count;
-        new_s.state = state;
+        borrow_checked new_borrow_checked;
+        new_borrow_checked.data = data;
+        new_borrow_checked.const_ref_count = const_ref_count;
+        new_borrow_checked.mut_ref_count = mut_ref_count;
+        new_borrow_checked.state = state;
 
-        return new_s;
+        return new_borrow_checked;
     }
 
-    S get_const_ref()
+    borrow_checked get_const_ref()
     {
-        S new_s;
-        new_s.data = data;
-        new_s.const_ref_count = const_ref_count;
-        new_s.mut_ref_count = mut_ref_count;
-        new_s.state = state;
-
         increment_const_ref_count();
-        return new_s;
+        borrow_checked new_borrow_checked;
+        new_borrow_checked.data = data;
+        new_borrow_checked.const_ref_count = const_ref_count;
+        new_borrow_checked.mut_ref_count = mut_ref_count;
+        new_borrow_checked.state = state;
+
+        return new_borrow_checked;
     }
 
-    ~S()
+    void set_to_nullptr()
     {
-        std::cout << "destructor\n";
-        if (*state == State::unset)
+        data = nullptr;
+        return;
+    }
+
+    ~borrow_checked()
+    {
+        // no more references, all data can be freed
+        if (*state == State::unset && *const_ref_count == 0 && *mut_ref_count == 0)
         {
-            free(data);
-            free(const_ref_count);
-            free(mut_ref_count);
-            free(state);
+            if (data != nullptr)
+                free(data);
+            if (const_ref_count != nullptr)
+                free(const_ref_count);
+            if (mut_ref_count != nullptr)
+                free(mut_ref_count);
+            if (state != nullptr)
+                free(state);
         }
         else
         {
@@ -118,48 +136,67 @@ public:
         }
     }
 
-    void set_data(int new_data)
+    void set_data(T new_data)
     {
         if (get_state() == State::mut_ref)
         {
-            std::cout << "bruh\n";
             *data = new_data;
         }
         else
         {
-            std::cout << "how does state !- mut_ref??\n";
             // create a proper error class;
+            // this is fatal, inconsistent state
             throw;
         }
     }
 
-    State get_state()
+    const State get_state()
     {
         return *state;
     }
 
-    void print_state()
+    const T *get_data()
+    {
+        return data;
+    }
+
+    const void print_state()
     {
         switch (*state)
         {
         case State::unset:
-            std::cout << "unset\n";
+            std::cout << "state: unset\n";
             break;
         case State::const_ref:
-            std::cout << "const_ref\n";
+            std::cout << "state: const_ref\n";
             break;
         case State::mut_ref:
-            std::cout << "mut_ref\n";
+            std::cout << "state: mut_ref\n";
             break;
 
         case State::invalid:
-            std::cout << "invalid state\n";
+            std::cout << "state: invalid\n";
             break;
         default:
-            std::cout << "invalid state\n";
             break;
         }
     }
-    std::size_t get_const_ref_count() { return *const_ref_count; }
-    std::size_t get_mut_ref_count() { return *mut_ref_count; }
+    const int get_const_ref_count()
+    {
+        return *const_ref_count;
+    }
+    const int get_mut_ref_count()
+    {
+        return *mut_ref_count;
+    }
 };
+
+// template <typename T>
+// bool operator==(const T lhs, const S<T> rhs) { return lhs == rhs.data; }
+// template <typename T>
+// bool operator!=(const T lhs, const S<T> rhs) { return lhs != rhs.data; }
+//
+// template <typename T>
+// bool operator==(const S<T> lhs, const T rhs) { return rhs == lhs.data; }
+// template <typename T>
+// bool operator!=(const S<T> lhs, const T rhs) { return rhs != lhs.data; }
